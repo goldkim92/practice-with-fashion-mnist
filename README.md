@@ -6,6 +6,8 @@ get data from
 
 
 practicing the model with 
-- mnist data
-- fasion mnist data
+
+1. mnist data
+2. fasion mnist data
+
 to check whether the model is available
