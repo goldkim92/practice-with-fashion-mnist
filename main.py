@@ -12,6 +12,9 @@ import os
 import tensorflow as tf
 from model import network
 
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
+
 #%% argument parser
 # dest : 별도의 변수 지정
 parser = argparse.ArgumentParser(description='')

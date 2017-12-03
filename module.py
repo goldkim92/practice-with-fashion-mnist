@@ -4,16 +4,16 @@ from ops import conv2d, maxpool2d, fully_connected
  
 def densenet(image, options, reuse=False, name='densenet'):
     
-#    divide = 2
+    divide = 2
     
     h_conv1 = conv2d(image, options.nf, name=name+'_conv1')
     h_db1 = denseblock(h_conv1, options, name=name+'_db1')    
     h_maxpool1 = maxpool2d(h_db1, name=name+'_pool1')
     h_db2 = denseblock(h_maxpool1, options, name=name+'_db2')
     
-#    pooled_size = int(options.image_size / divide)
+    pooled_size = int(options.image_size / divide)
     
-    h_flat = tf.reshape(h_db2, [-1, 14*14*12])
+    h_flat = tf.reshape(h_db2, [-1, pooled_size * pooled_size * options.nf])
     h_fc1 = fully_connected(h_flat, options.nf * options.nf, name=name+'_fc1')
     h_fc2 = fully_connected(h_fc1, options.n_pred, name=name+'_fc2')
     
