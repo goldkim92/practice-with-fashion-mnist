@@ -2,22 +2,20 @@ import tensorflow as tf
 from ops import conv2d, maxpool2d, fully_connected
   
  
-def densenet(image, options, reuse=False,name='densenet'):
+def densenet(image, options, reuse=False, name='densenet'):
     
-    with tf.variable_scope(name):
-        if reuse:
-            tf.get_variable_scope().reuse_variables()
-        else:
-            assert tf.get_variable_scope().reuse is False
+#    divide = 2
     
-    h_conv1 = conv2d(image, options.nf, name='conv1')
-    h_db1 = denseblock(h_conv1, options, name='db1')    
-    h_maxpool1 = maxpool2d(h_db1, name='pool1')
-    h_db2 = denseblock(h_maxpool1, options, name='db2')
+    h_conv1 = conv2d(image, options.nf, name=name+'_conv1')
+    h_db1 = denseblock(h_conv1, options, name=name+'_db1')    
+    h_maxpool1 = maxpool2d(h_db1, name=name+'_pool1')
+    h_db2 = denseblock(h_maxpool1, options, name=name+'_db2')
     
-    h_flat = tf.reshape(h_db2, [-1,tf.size(h_db2)])
-    h_fc1 = fully_connected(h_flat, options.nf * options.nf, name='fc1')
-    h_fc2 = fully_connected(h_fc1, options.n_pred, name='fc2')
+#    pooled_size = int(options.image_size / divide)
+    
+    h_flat = tf.reshape(h_db2, [-1, 14*14*12])
+    h_fc1 = fully_connected(h_flat, options.nf * options.nf, name=name+'_fc1')
+    h_fc2 = fully_connected(h_fc1, options.n_pred, name=name+'_fc2')
     
     return h_fc2
   
@@ -33,5 +31,4 @@ def denseblock(input_, options, reuse=False, name='denseblock'):
         
         return h_conv5
      
-    
     
