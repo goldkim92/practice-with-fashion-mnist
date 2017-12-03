@@ -18,9 +18,9 @@ class network(object):
         self.image_nc = args.image_nc
         self.label_n = args.label_n
         self.lr = args.lr
+        self.epoch = args.epoch
+        self.batch_size = args.batch_size
         
-#        self.densenet = module.densenet
-
         OPTIONS = namedtuple('OPTIONS','image_size image_nc, nf n_pred')
         self.options = OPTIONS._make((self.image_size, self.image_nc, args.nf, 10))
         
@@ -61,11 +61,10 @@ class network(object):
         
 #        start_time = time.time()
         
-        __epoch = 10
-        __batch_size = 128
-        total_batch = int(self.n_train/__batch_size)+1
         
-        for epoch in range(__epoch):
+        total_batch = int(self.n_train/self.batch_size)+1
+        
+        for epoch in range(self.epoch):
             
             idx_permute_list = np.random.permutation(self.n_train)
             cost = 0.
@@ -73,7 +72,7 @@ class network(object):
             for i in tqdm(range(total_batch)):
                 
                 # get batch images and labels
-                idx_rand  = idx_permute_list[i*__batch_size:min((i+1)*__batch_size, self.n_train-1)]
+                idx_rand  = idx_permute_list[i*self.batch_size:min((i+1)*self.batch_size, self.n_train-1)]
                 batch_images = self.X_train[idx_rand, :]
                 batch_labels = self.y_train[idx_rand, :] 
                 
@@ -86,8 +85,8 @@ class network(object):
            
             # DISPLAY
             disp_each = 1
-            if (epoch+1) % disp_each == 0 or epoch == __epoch-1:
-                print ("Epoch: %03d/%03d, Cost: %f" % (epoch+1, __epoch, avg_cost))
+            if (epoch+1) % disp_each == 0 or epoch == epoch-1:
+                print ("Epoch: %03d/%03d, Cost: %f" % (epoch+1, epoch, avg_cost))
                 feeds = {self.input_images: batch_images, self.labels: batch_labels}
                 train_acc = self.sess.run(self.accr, feed_dict=feeds)
                 print (" TRAIN ACCURACY: %.3f" % (train_acc))

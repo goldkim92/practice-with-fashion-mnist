@@ -29,7 +29,8 @@ parser.add_argument('--label_n', dest='label_n', type=int, default=10, help='# o
 parser.add_argument('--nf', dest='nf', type=int, default=12, help='# of filters in first conv layer')
 
 parser.add_argument('--lr', dest='lr', type=float, default=0.001, help='initial learning rate for adam')
-
+parser.add_argument('--epoch', dest='epoch', type=int, default=10, help='# of epoch')
+parser.add_argument('--batch_size', dest='batch_size', type=int, default=128, help='# of batch_size')
 
 args = parser.parse_args()
 
