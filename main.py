@@ -14,12 +14,13 @@ from model import network
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"]="2"
+tf.reset_default_graph()
 
 #%% argument parser
 # dest : 별도의 변수 지정
 parser = argparse.ArgumentParser(description='')
-parser.add_argument('--dataset_dir', dest='dataset_dir', default='.\\data\\fasion', help='path of the dataset')
-parser.add_argument('--test_dir', dest='test_dir', default='.\\test', help='test samples are saved here')
+parser.add_argument('--dataset_dir', dest='dataset_dir', default='./data/fashion', help='path of the dataset')
+parser.add_argument('--test_dir', dest='test_dir', default='./test', help='test samples are saved here')
 parser.add_argument('--checkpoint_dir', dest='checkpoint_dir', default='./checkpoint', help='models are saved here')
 parser.add_argument('--phase', dest='phase', default='train', help='train, test')
 
