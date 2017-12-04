@@ -34,11 +34,12 @@ parser.add_argument('--lr', dest='lr', type=float, default=0.0002, help='initial
 parser.add_argument('--epoch', dest='epoch', type=int, default=10, help='# of epoch')
 parser.add_argument('--batch_size', dest='batch_size', type=int, default=128, help='# of batch_size')
 
+parser.add_argument('--continue_train', dest='continue_train', type=bool, default=False, help='if continue training, load the latest model')
+
 args = parser.parse_args()
 
 #%%
 def main(_):
-    dataset_dir = os.path.join(args.dataset_dir, args.dataset_name)
     test_dir = os.path.join(args.test_dir, args.dataset_name)
     checkpoint_dir = os.path.join(args.checkpoint_dir, args.dataset_name)    
 
