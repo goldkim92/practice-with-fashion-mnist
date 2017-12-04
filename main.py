@@ -53,7 +53,7 @@ def main(_):
     tfconfig.gpu_options.allow_growth = True
     with tf.Session(config=tfconfig) as sess:
         model = network(sess,args)
-        model.train(args) if args.phase == 'train' else model.test(args)
+        model.train() if args.phase == 'train' else model.test()
         
 if __name__ == '__main__':
     tf.app.run()
