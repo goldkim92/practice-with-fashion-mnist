@@ -14,8 +14,10 @@ class network(object):
     
     def __init__(self, sess, args):
         self.sess = sess
-        self.dataset_dir = args.dataset_dir
-        self.checkpoint_dir = args.checkpoint_dir
+        self.dataset_name = args.dataset_name
+        self.dataset_dir = os.path.join(args.dataset_dir, args.dataset_name)
+        self.test_dir = os.path.join(args.test_dir, args.dataset_name)
+        self.checkpoint_dir = os.path.join(args.checkpoint_dir, args.dataset_name)
         self.image_size = args.image_size
         self.image_nc = args.image_nc
         self.label_n = args.label_n
@@ -23,8 +25,8 @@ class network(object):
         self.epoch = args.epoch
         self.batch_size = args.batch_size
         
-        OPTIONS = namedtuple('OPTIONS','image_size image_nc, nf n_pred')
-        self.options = OPTIONS._make((self.image_size, self.image_nc, args.nf, 10))
+        OPTIONS = namedtuple('OPTIONS',['image_size', 'image_nc', 'nf', 'n_pred'])
+        self.options = OPTIONS(self.image_size, self.image_nc, args.nf, 10)
         
         self.build_model()
         self.saver = tf.train.Saver()
@@ -42,11 +44,17 @@ class network(object):
         
         # accuracy
         corr = tf.equal(tf.argmax(self.pred, 1), tf.argmax(self.labels, 1))    
-        self.accr = tf.reduce_mean(tf.cast(corr, "float"))
-   
+        self.accr_count = tf.reduce_sum(tf.cast(corr, "float"))
+        
+        #placeholder for summary
+        self.total_loss = tf.placeholder(tf.float32)
+        self.accr = tf.placeholder(tf.float32)
+        
         # summary
-        self.sum_accr = tf.summary.scalar('accuracy',self.accr)
-        self.summary = tf.summary.merge([self.sum_accr])
+        self.sum_cost = tf.summary.scalar('cost function', self.total_loss)
+        self.sum_accr = tf.summary.scalar('accuaracy', self.accr)
+#        self.summary = tf.summary.merge([self.sum_train_accr, self.sum_test_accr])
+#        self.summary = tf.summary.merge_all()
         
         # print trainable variables
         t_vars = tf.trainable_variables()
@@ -60,8 +68,9 @@ class network(object):
         self.load_data()
         
         # summary
-        self.summary_loss = tf.summary.scalar('loss',self.loss)
-        self.writer = tf.summary.FileWriter('./log/fashion', self.sess.graph)
+        self.writer_cost = tf.summary.FileWriter(os.path.join('.','log',self.dataset_name,'cost'), self.sess.graph)
+        self.writer_train_accr = tf.summary.FileWriter(os.path.join('.','log',self.dataset_name,'train_accr'),self.sess.graph)
+        self.writer_test_accr = tf.summary.FileWriter(os.path.join('.','log',self.dataset_name,'test_accr'),self.sess.graph)        
         
         self.sess.run(tf.global_variables_initializer())        
         
@@ -90,20 +99,45 @@ class network(object):
            
             # DISPLAY & SAVE
             disp_each = 1
-            if (epoch+1) % disp_each == 0 or epoch == epoch-1:
-                print ("Epoch: %03d/%03d, Cost: %f" % (epoch+1, epoch, avg_cost))
-                feeds = {self.input_images: batch_images, self.labels: batch_labels}
-                train_acc = self.sess.run(self.accr, feed_dict=feeds)
-                print (" TRAIN ACCURACY: %.3f" % (train_acc))
-                feeds = {self.input_images: self.X_test, self.labels: self.y_test}
-#                test_acc, summary = self.sess.run([self.accr, self.summary], feed_dict=feeds)
-#                test_acc = self.sess.run(self.accr, feed_dict=feeds)
-#                print (" TEST ACCURACY: %.3f" % (test_acc))
-#                self.writer.add_summary(summary, epoch+1)
+            if (epoch+1) % disp_each == 0 or epoch == self.epoch-1:
+                print ("Epoch: %03d/%03d, Cost: %f" % (epoch+1, self.epoch, avg_cost))
+                train_accr = self.accuracy('train')
+                test_accr = self.accuracy('test')
                 
-                self.save(self.checkpoint_dir, epoch+1)
+                #summary
+                summary = self.sess.run(self.sum_cost, feed_dict={self.total_loss:avg_cost})
+                self.writer_cost.add_summary(summary, epoch+1)
+                
+                summary = self.sess.run(self.sum_accr, feed_dict={self.accr:train_accr})
+                self.writer_train_accr.add_summary(summary, epoch+1)
+                
+                summary = self.sess.run(self.sum_accr, feed_dict={self.accr:test_accr})
+                self.writer_test_accr.add_summary(summary, epoch+1)
+                
+#                self.checkpoint_save(epoch+1)
+
+    
+    def accuracy(self, phase='test', batch_size=100):
+        Dataset = namedtuple('Dataset',['X_', 'y_', 'n_'])
+        if phase=='train':
+            dataset = Dataset(self.X_train, self.y_train, self.n_train)
+        elif phase=='test':
+            dataset = Dataset(self.X_test, self.y_test, self.n_test)
+
+        accr = 0.    
+        for i in range(0, int(dataset.n_ / batch_size)):
+            feeds = {
+                    self.input_images: dataset.X_[i*batch_size : (i+1)*batch_size],
+                    self.labels: dataset.y_[i*batch_size : (i+1)*batch_size]
+                    }
+            accr += self.sess.run(self.accr_count, feed_dict=feeds)
         
+        accr = accr / dataset.n_
+        print(" %s ACCURACY: %.3f" % (phase.upper(), accr))    
         
+        return accr
+    
+    
     def load_data(self):
         self.X_train, self.y_train = util.load_mnist(self.dataset_dir, kind='train')
         self.n_train = np.size(self.X_train, 0)
@@ -111,15 +145,24 @@ class network(object):
         self.X_test, self.y_test = util.load_mnist(self.dataset_dir, kind='t10k')
         self.n_test = np.size(self.X_test, 0)
 
-    def save(self, checkpoint_dir,step):
+
+    def checkpoint_save(self, step):
         model_name = "densenet.model"
-#        model_dir = "%s_%s" % (self.dataset_dir, self.image_size)
-        checkpoint_dir = os.path.join(checkpoint_dir, self.dataset_dir)
-
-        try: os.makedirs(checkpoint_dir)
-        except: pass
-
+        
         self.saver.save(self.sess,
-                        os.path.join(checkpoint_dir, model_name),
+                        os.path.join(self.checkpoint_dir, model_name),
                         global_step=step)
+    
+    
+    def checkpoint_load(self):
+        print(" [*] Reading checkpoint...")
+        
+        ckpt = tf.train.get_checkpoint_state(self.checkpoint_dir)
+        
+        if ckpt and ckpt.model_checkpoint_path:
+            ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
+            self.saver.restore(self.sess, os.path.join(self.checkpoint_dir, ckpt_name))
+            return True
+        else:
+            return False
         
