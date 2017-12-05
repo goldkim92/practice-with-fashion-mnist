@@ -26,8 +26,8 @@ class network(object):
         self.batch_size = args.batch_size
         self.continue_train = args.continue_train
         
-        OPTIONS = namedtuple('OPTIONS',['image_size', 'image_nc', 'nf', 'n_pred'])
-        self.options = OPTIONS(self.image_size, self.image_nc, args.nf, 10)
+        OPTIONS = namedtuple('OPTIONS',['image_size', 'image_nc', 'nk', 'ks', 'n_pred'])
+        self.options = OPTIONS(self.image_size, self.image_nc, args.nk, args.ks, 10)
         
         self.build_model()
         self.saver = tf.train.Saver()
